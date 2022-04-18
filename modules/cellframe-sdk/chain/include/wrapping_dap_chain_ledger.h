@@ -48,6 +48,7 @@ PyObject *dap_chain_ledger_tx_find_by_addr_py(PyObject *self, PyObject *args);
 PyObject *dap_chain_ledger_tx_find_by_pkey_py(PyObject *self, PyObject *args);
 PyObject *dap_chain_ledger_tx_cache_find_out_cond_py(PyObject *self, PyObject *args);
 PyObject *dap_chain_ledger_tx_cache_get_out_cond_value_py(PyObject *self, PyObject *args);
+PyObject *dap_chain_ledger_get_txs_py(PyObject *self, PyObject *args);
 
 static PyMethodDef DapChainLedgerMethods[] = {
     {"setLocalCellId", (PyCFunction)dap_chain_ledger_set_local_cell_id_py, METH_VARARGS, ""},
@@ -73,13 +74,14 @@ static PyMethodDef DapChainLedgerMethods[] = {
     {"txFindByPkey", (PyCFunction)dap_chain_ledger_tx_find_by_pkey_py, METH_VARARGS, ""},
     {"txCacheFindOutCond", (PyCFunction)dap_chain_ledger_tx_cache_find_out_cond_py, METH_VARARGS, ""},
     {"txCacheGetOutCondValue", (PyCFunction)dap_chain_ledger_tx_cache_get_out_cond_value_py, METH_VARARGS, ""},
+    {"getTransactions", (PyCFunction) dap_chain_ledger_get_txs_py, METH_VARARGS, ""},
 
     {NULL, NULL, 0, NULL}
 };
 
 static PyTypeObject DapChainLedger_DapChainLedgerType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "CellFrame.Chain.Ledger",                                      /* tp_name */
+    "CellFrame.ChainLedger",                                      /* tp_name */
     sizeof(PyDapChainLedgerObject),                               /* tp_basicsize */
     0,                                                            /* tp_itemsize */
     0,                                                            /* tp_dealloc */
@@ -99,7 +101,7 @@ static PyTypeObject DapChainLedger_DapChainLedgerType = {
     0,                                                            /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT |
         Py_TPFLAGS_BASETYPE,                                      /* tp_flags */
-    "Chain ledger objects",                                              /* tp_doc */
+    "Chain ledger object",                                              /* tp_doc */
     0,		                                                      /* tp_traverse */
     0,		                                                      /* tp_clear */
     0,		                                                      /* tp_richcompare */

@@ -49,7 +49,9 @@ PyObject *PyDapChainDatumTxObject_create(PyTypeObject *type_object, PyObject *ar
     return (PyObject *)obj;
 }
 void PyDapChainDatumTxObject_delete(PyDapChainDatumTxObject* datumTx){
-    dap_chain_datum_tx_delete(datumTx->datum_tx);
+    if (datumTx->original == true) {
+        dap_chain_datum_tx_delete(datumTx->datum_tx);
+    }
     Py_TYPE(datumTx)->tp_free((PyObject*)datumTx);
 }
 
@@ -112,7 +114,7 @@ PyObject *dap_chain_datum_tx_add_out_cond_item_py(PyObject *self, PyObject *args
         return NULL;
     void *cond = (void*)PyBytes_AsString(obj_cond_bytes);
     int res = dap_chain_datum_tx_add_out_cond_item(&(((PyDapChainDatumTxObject*)self)->datum_tx),
-                                                   ((PyCryptoKeyObject*)obj_key)->key,
+                                                   ((PyDapPkeyObject*)obj_key)->pkey,
                                                    ((PyDapChainNetSrvUIDObject*)obj_srv_uid)->net_srv_uid,
                                                    value, value_max_per_unit,
                                                    ((PyDapChainNetSrvPriceUnitUIDObject*)obj_srv_price_unit_uid)->price_unit_uid,
@@ -163,6 +165,9 @@ PyObject *wrapping_dap_chain_datum_tx_get_items(PyObject *self, PyObject *args){
     while(l_tx_items_count < l_tx_items_size){
         uint8_t *item = ((PyDapChainDatumTxObject*)self)->datum_tx->tx_items + l_tx_items_count;
         size_t l_tx_item_size = dap_chain_datum_item_tx_get_size(item);
+        if (!l_tx_item_size){
+            return  Py_None;
+        }
         PyObject *obj_tx_item = NULL;
         switch (dap_chain_datum_tx_item_get_type(item)) {
             case TX_ITEM_TYPE_IN:
