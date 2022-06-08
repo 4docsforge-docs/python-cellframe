@@ -202,8 +202,7 @@ add_library(${PROJECT_NAME} STATIC ${CHAIN_PYTHON_SRCS} ${CHAIN_PYTHON_HEADERS})
 
 target_link_libraries(${PROJECT_NAME})
 
-target_link_libraries(${PROJECT_NAME}
-        dap_core
+target_link_libraries(${PROJECT_NAME} dap_core
         dap_crypto
         dap_chain
         dap_server_core

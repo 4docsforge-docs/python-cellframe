@@ -5,7 +5,6 @@ import os
 
 app_name = "MyChains"
 tmp_dir = os.getcwd() + "/tmp"
-#os.mkdir(tmp_dir)
 var_dir = os.getcwd() + "/var"
 if os.path.isdir(var_dir+"/log") is False:
     os.mkdir(var_dir+"/log")

@@ -2,12 +2,61 @@
 
 #define LOG_TAG "wrapping_dap_chain_net_srv_client"
 
+PyMethodDef DapChainNetSrvClientMethods[]={
+        {"check", (PyCFunction)wrapping_dap_chain_net_srv_client_check, METH_VARARGS, ""},
+        {"request", (PyCFunction)wrapping_dap_chain_net_srv_client_request, METH_VARARGS, ""},
+        {"write", (PyCFunction)wrapping_dap_chain_net_srv_client_write, METH_VARARGS, ""},
+        {NULL, NULL, 0, NULL}
+};
+
+PyTypeObject DapChainNetSrvClientObjectType = {
+        PyVarObject_HEAD_INIT(NULL, 0)
+        "CellFrame.ChainNetSrvClient",        /* tp_name */
+        sizeof(PyDapChainNetSrvClientObject), /* tp_basicsize */
+        0,                                /* tp_itemsize */
+        0,                                /* tp_dealloc */
+        0,                                /* tp_print */
+        0,                                /* tp_getattr */
+        0,                                /* tp_setattr */
+        0,                                /* tp_reserved */
+        0,                                /* tp_repr */
+        0,                                /* tp_as_number */
+        0,                                /* tp_as_sequence */
+        0,                                /* tp_as_mapping */
+        0,                                /* tp_hash  */
+        0,                                /* tp_call */
+        0,                                /* tp_str */
+        0,                                /* tp_getattro */
+        0,                                /* tp_setattro */
+        0,                                /* tp_as_buffer */
+        Py_TPFLAGS_DEFAULT |
+        Py_TPFLAGS_BASETYPE,              /* tp_flags */
+        "Chain net service client object",/* tp_doc */
+        0,		                          /* tp_traverse */
+        0,		                          /* tp_clear */
+        0,		                          /* tp_richcompare */
+        0,                                /* tp_weaklistoffset */
+        0,		                          /* tp_iter */
+        0,		                          /* tp_iternext */
+        DapChainNetSrvClientMethods,      /* tp_methods */
+        0,                                /* tp_members */
+        0,                                /* tp_getset */
+        0,                                /* tp_base */
+        0,                                /* tp_dict */
+        0,                                /* tp_descr_get */
+        0,                                /* tp_descr_set */
+        0,                                /* tp_dictoffset */
+        (initproc)PyDapChainNetSrvClient_init,      /* tp_init */
+        0,                                /* tp_alloc */
+        PyType_GenericNew,                /* tp_new */
+};
+
 static void _wrapping_dap_chain_net_srv_client_callback_connected(dap_chain_net_srv_client_t* a_client, void *a_arg){
     PyDapChainNetSrvClientObject *py_client = (PyDapChainNetSrvClientObject *)a_client->_inheritor;
     PyObject *l_call = py_client->callback_connected;
     if (PyCallable_Check(l_call)) {
-        PyObject *l_args = Py_BuildValue("OO", py_client, a_arg);
         PyGILState_STATE state = PyGILState_Ensure();
+        PyObject *l_args = Py_BuildValue("OO", py_client, a_arg);
         PyEval_CallObject(l_call, l_args);
         Py_DECREF(l_args);
         PyGILState_Release(state);
@@ -21,8 +70,8 @@ static void _wrapping_dap_chain_net_srv_client_callback_disconnected(dap_chain_n
     PyDapChainNetSrvClientObject *py_client = (PyDapChainNetSrvClientObject *)a_client->_inheritor;
     PyObject *l_call = py_client->callback_disconnected;
     if (PyCallable_Check(l_call)) {
-        PyObject *l_args = Py_BuildValue("OO", py_client, a_arg);
         PyGILState_STATE state = PyGILState_Ensure();
+        PyObject *l_args = Py_BuildValue("OO", py_client, a_arg);
         PyEval_CallObject(l_call, l_args);
         Py_DECREF(l_args);
         PyGILState_Release(state);
@@ -36,8 +85,8 @@ static void _wrapping_dap_chain_net_srv_client_callback_deleted(dap_chain_net_sr
     PyDapChainNetSrvClientObject *py_client = (PyDapChainNetSrvClientObject *)a_client->_inheritor;
     PyObject *l_call = py_client->callback_deleted;
     if (PyCallable_Check(l_call)) {
-        PyObject *l_args = Py_BuildValue("OO", py_client, a_arg);
         PyGILState_STATE state = PyGILState_Ensure();
+        PyObject *l_args = Py_BuildValue("OO", py_client, a_arg);
         PyEval_CallObject(l_call, l_args);
         Py_DECREF(l_args);
         PyGILState_Release(state);
@@ -54,8 +103,8 @@ static void _wrapping_dap_chain_net_srv_client_callback_check(dap_chain_net_srv_
     PyDapChainNetSrvClientObject *py_client = (PyDapChainNetSrvClientObject *)a_srv_client->_inheritor;
     PyObject *l_call = py_client->callback_check;
     if (PyCallable_Check(l_call)) {
-        PyObject *l_args = Py_BuildValue("OO", py_client, (PyObject *)a_arg);
         PyGILState_STATE state = PyGILState_Ensure();
+        PyObject *l_args = Py_BuildValue("OO", py_client, (PyObject *)a_arg);
         PyEval_CallObject(l_call, l_args);
         Py_DECREF(l_args);
         PyGILState_Release(state);
@@ -72,16 +121,16 @@ static dap_chain_datum_tx_receipt_t * _wrapping_dap_chain_net_srv_client_callbac
     PyObject *l_call = py_client->callback_sign;
     PyDapChainTXReceiptObject *py_ret = NULL;
     if (PyCallable_Check(l_call)) {
+        PyGILState_STATE state = PyGILState_Ensure();
         PyDapChainTXReceiptObject *py_receipt = PyObject_New(PyDapChainTXReceiptObject,
-                                                             &DapChainTxReceiptObject_DapChainTxReceiptTypeObjectType);
+                                                             &DapChainTxReceiptObjectType);
         py_receipt->tx_receipt = a_receipt;
         PyObject *l_args = Py_BuildValue("OOO", py_client, py_receipt, (PyObject *)a_arg);
-        PyGILState_STATE state = PyGILState_Ensure();
         py_ret = (PyDapChainTXReceiptObject *)PyEval_CallObject(l_call, l_args);
         Py_DECREF(l_args);
         PyGILState_Release(state);
     } else {
-        log_it(L_ERROR, "Can't call handler Python in callback sign");
+        log_it(L_ERROR, "Can't call handler Python in sign callback");
     }
     if (!py_ret || (PyObject *)py_ret == Py_None || !py_ret->tx_receipt)
         return NULL;
@@ -95,6 +144,7 @@ static void _wrapping_dap_chain_net_srv_client_callback_success(dap_chain_net_sr
     PyDapChainNetSrvClientObject *py_client = (PyDapChainNetSrvClientObject *)a_srv_client->_inheritor;
     PyObject *l_call = py_client->callback_success;
     if (PyCallable_Check(l_call)) {
+        PyGILState_STATE state = PyGILState_Ensure();
         PyDapHashFastObject *py_cond_hash = PyObject_New(PyDapHashFastObject,
                                                          &DapHashTypeObject_DapChainHashTypeObjectType);
         if (a_pkt_size == sizeof(dap_stream_ch_chain_net_srv_pkt_success_t) + sizeof(dap_chain_hash_fast_t)) {
@@ -103,12 +153,11 @@ static void _wrapping_dap_chain_net_srv_client_callback_success(dap_chain_net_sr
         } else
             py_cond_hash->hash_fast = NULL;
         PyObject *l_args = Py_BuildValue("OOO", py_client, py_cond_hash, (PyObject *)a_arg);
-        PyGILState_STATE state = PyGILState_Ensure();
         PyEval_CallObject(l_call, l_args);
         Py_DECREF(l_args);
         PyGILState_Release(state);
     } else {
-        log_it(L_ERROR, "Can't call handler Python in callback success");
+        log_it(L_ERROR, "Can't call handler Python in success callback");
     }
 }
 
@@ -118,13 +167,13 @@ static void _wrapping_dap_chain_net_srv_client_callback_error(dap_chain_net_srv_
     PyDapChainNetSrvClientObject *py_client = (PyDapChainNetSrvClientObject *)a_srv_client->_inheritor;
     PyObject *l_call = py_client->callback_error;
     if (PyCallable_Check(l_call)) {
-        PyObject *l_args = Py_BuildValue("OiO", py_client, a_error_code, (PyObject *)a_arg);
         PyGILState_STATE state = PyGILState_Ensure();
+        PyObject *l_args = Py_BuildValue("OiO", py_client, a_error_code, (PyObject *)a_arg);
         PyEval_CallObject(l_call, l_args);
         Py_DECREF(l_args);
         PyGILState_Release(state);
     } else {
-        log_it(L_ERROR, "Can't call handler Python in callback error");
+        log_it(L_ERROR, "Can't call handler Python in error callback");
     }
 }
 
@@ -135,14 +184,14 @@ static void _wrapping_dap_chain_net_srv_client_callback_data(dap_chain_net_srv_c
     PyDapChainNetSrvClientObject *py_client = (PyDapChainNetSrvClientObject *)a_srv_client->_inheritor;
     PyObject *l_call = py_client->callback_data;
     if (PyCallable_Check(l_call)) {
+        PyGILState_STATE state = PyGILState_Ensure();
         PyObject *l_data = PyBytes_FromStringAndSize((char *)a_data, a_data_size);
         PyObject *l_args = Py_BuildValue("OOO", py_client, l_data, (PyObject *)a_arg);
-        PyGILState_STATE state = PyGILState_Ensure();
         PyEval_CallObject(l_call, l_args);
         Py_DECREF(l_args);
         PyGILState_Release(state);
     } else {
-        log_it(L_ERROR, "Can't call handler Python in callback data");
+        log_it(L_ERROR, "Can't call handler Python in data callback");
     }
 }
 
@@ -176,7 +225,7 @@ int PyDapChainNetSrvClient_init(PyDapChainNetSrvClientObject* self, PyObject *ar
                 )){
         return -1;
     }
-    if (!PyDapChainNet_Check((PyObject *)py_net))
+    if (!PyDapChainNet_Check(py_net))
        return -2;
     if (!PyCallable_Check(py_cb_conn) ||
             !PyCallable_Check(py_cb_disc) ||
@@ -220,14 +269,14 @@ PyObject *wrapping_dap_chain_net_srv_client_check(PyObject *self, PyObject *args
     PyDapChainNetSrvUIDObject *obj_srv_uid;
     PyObject *obj_bytes;
     if (!PyArg_ParseTuple(args, "OOO", &obj_net_id, &obj_srv_uid, &obj_bytes)) {
-        return Py_None;
+        Py_RETURN_NONE;
     }
     if (!PyDapChainNetSrvUid_Check(obj_srv_uid))
-        return Py_None;
-    if (PyObject_TypeCheck(obj_net_id, &DapChainNetIdObject_DapChainNetIdObjectType))
-        return Py_None;
+        Py_RETURN_NONE;
+    if (PyObject_TypeCheck(obj_net_id, &DapChainNetIdObjectType))
+        Py_RETURN_NONE;
     if (!PyBytes_Check(obj_bytes)) {
-        return Py_None;
+        Py_RETURN_NONE;
     }
     //Generate packet
     size_t l_bytes_size = PyBytes_Size(obj_bytes);
@@ -240,7 +289,9 @@ PyObject *wrapping_dap_chain_net_srv_client_check(PyObject *self, PyObject *args
     l_request->srv_uid.uint64 = obj_srv_uid->net_srv_uid.uint64;
     l_request->data_size_send = l_request->data_size_recv = l_bytes_size;
     l_request->data_size = l_bytes_size;
-    gettimeofday(&l_request->send_time1, NULL);
+    struct timeval l_send_time_1;
+    gettimeofday(&l_send_time_1, NULL);
+    l_request->send_time1 = l_send_time_1;
     memcpy(l_request->data, l_bytes, l_bytes_size);
     dap_hash_fast(l_request->data, l_request->data_size, &l_request->data_hash);
     ssize_t l_res = dap_chain_net_srv_client_write(
@@ -255,13 +306,13 @@ PyObject *wrapping_dap_chain_net_srv_client_request(PyObject *self, PyObject *ar
     PyDapChainNetSrvUIDObject *obj_srv_uid;
     PyDapHashFastObject *obj_tx_cond_hash;
     if (!PyArg_ParseTuple(args, "OOO", &obj_net, &obj_srv_uid, &obj_tx_cond_hash))
-        return Py_None;
+        Py_RETURN_NONE;
     if (!PyDapChainNetSrvUid_Check(obj_srv_uid))
-        return Py_None;
-    if (!PyDapChainNet_Check((PyObject *)obj_net))
-        return Py_None;
-    if (!PyDapHashFast_Check((PyObject *)obj_tx_cond_hash)) {
-        return Py_None;
+        Py_RETURN_NONE;
+    if (!PyDapChainNet_Check(obj_net))
+        Py_RETURN_NONE;
+    if (!PyDapHashFast_Check(obj_tx_cond_hash)) {
+        Py_RETURN_NONE;
     }
     //Generate packet
     dap_stream_ch_chain_net_srv_pkt_request_hdr_t l_hdr = {};
@@ -279,13 +330,13 @@ PyObject *wrapping_dap_chain_net_srv_client_write(PyObject *self, PyObject *args
     PyDapChainNetSrvUIDObject *obj_srv_uid;
     PyObject *obj_bytes;
     if (!PyArg_ParseTuple(args, "OO", &obj_srv_uid, &obj_bytes)) {
-        return Py_None;
+        Py_RETURN_NONE;
     }
     if (!PyDapChainNetSrvUid_Check(obj_srv_uid)) {
-        return Py_None;
+        Py_RETURN_NONE;
     }
     if (!PyBytes_Check(obj_bytes)) {
-        return Py_None;
+        Py_RETURN_NONE;
     }
     //Generate packet
     size_t l_bytes_size = PyBytes_Size(obj_bytes);

@@ -1,5 +1,56 @@
 #include "wrapping_dap_chain_global_db.h"
 
+PyMethodDef DapChainGlobalDBMethods[] = {
+        {"get", (PyCFunction)wrapping_dap_chain_global_db_gr_get, METH_VARARGS | METH_STATIC, ""},
+        {"set", (PyCFunction)wrapping_dap_chain_global_db_gr_set, METH_VARARGS | METH_STATIC, ""},
+        {"delete", (PyCFunction)wrapping_dap_chain_global_db_gr_del, METH_VARARGS | METH_STATIC, ""},
+        {"pin", (PyCFunction)wrapping_dap_chain_global_db_gr_pin, METH_VARARGS | METH_STATIC, ""},
+        {"grLoad", (PyCFunction)wrapping_dap_chain_global_db_gr_load, METH_VARARGS | METH_STATIC, ""},
+        {NULL, NULL, 0, NULL}
+};
+
+PyTypeObject DapChainGlobalDBObjectType = {
+        PyVarObject_HEAD_INIT(NULL, 0)
+        "CellFrame.ChainGlobalDB",                                            /* tp_name */
+        sizeof(PyDapChainGlobalDBObject),                                     /* tp_basicsize */
+        0,                                                            /* tp_itemsize */
+        0,                                                            /* tp_dealloc */
+        0,                                                            /* tp_print */
+        0,                                                            /* tp_getattr */
+        0,                                                            /* tp_setattr */
+        0,                                                            /* tp_reserved */
+        0,                                                            /* tp_repr */
+        0,                                                            /* tp_as_number */
+        0,                                                            /* tp_as_sequence */
+        0,                                                            /* tp_as_mapping */
+        0,                                                            /* tp_hash  */
+        0,                                                            /* tp_call */
+        0,                                                            /* tp_str */
+        0,                                                            /* tp_getattro */
+        0,                                                            /* tp_setattro */
+        0,                                                            /* tp_as_buffer */
+        Py_TPFLAGS_DEFAULT |
+        Py_TPFLAGS_BASETYPE,                                      /* tp_flags */
+        "Chain GlobalDB object",                                              /* tp_doc */
+        0,		                                                      /* tp_traverse */
+        0,		                                                      /* tp_clear */
+        0,		                                                      /* tp_richcompare */
+        0,		                                                      /* tp_weaklistoffset */
+        0,		                                                      /* tp_iter */
+        0,		                                                      /* tp_iternext */
+        DapChainGlobalDBMethods,                                      /* tp_methods */
+        0,                                                            /* tp_members */
+        0,                                                            /* tp_getset */
+        0,                                                            /* tp_base */
+        0,                                                            /* tp_dict */
+        0,                                                            /* tp_descr_get */
+        0,                                                            /* tp_descr_set */
+        0,                                                            /* tp_dictoffset */
+        0,                                                            /* tp_init */
+        0,                                                            /* tp_alloc */
+        PyType_GenericNew,                                            /* tp_new */
+};
+
 PyObject *wrapping_dap_chain_global_db_gr_get(PyObject *self, PyObject *args){
     (void)self;
     const char *l_key;
@@ -10,7 +61,7 @@ PyObject *wrapping_dap_chain_global_db_gr_get(PyObject *self, PyObject *args){
     size_t l_size_data = 0;
     void *l_bytes = dap_chain_global_db_gr_get(l_key, &l_size_data, l_group);
     if (l_size_data == 0)
-        return Py_None;
+        Py_RETURN_NONE;
     PyObject *l_obj_bytes = PyBytes_FromStringAndSize(l_bytes, (Py_ssize_t)l_size_data);
     return l_obj_bytes;
 }
@@ -53,5 +104,26 @@ PyObject *wrapping_dap_chain_global_db_gr_del(PyObject *self, PyObject *args){
 }
 
 PyObject *wrapping_dap_chain_global_db_gr_pin(PyObject *self, PyObject *args){
-    return Py_None;
+    Py_RETURN_NONE;
+}
+
+PyObject *wrapping_dap_chain_global_db_gr_load(PyObject *self, PyObject *args){
+    (void)self;
+    char *l_group;
+    if (!PyArg_ParseTuple(args, "s", &l_group)){
+        return NULL;
+    }
+    size_t l_data_out = 0;
+    dap_global_db_obj_t *l_db_obj = dap_chain_global_db_gr_load(l_group, &l_data_out);
+    if (l_data_out == 0){
+        Py_RETURN_NONE;
+    }
+    PyObject* l_list = PyList_New(l_data_out);
+    for (size_t i = 0; i < l_data_out; i++){
+        PyDapChainGlobalDBContainerObject *l_obj = PyObject_New(PyDapChainGlobalDBContainerObject ,
+                                                                &DapChainGlobalDBContainerObjectType);
+        l_obj->obj = l_db_obj[i];
+        PyList_SetItem(l_list, i, (PyObject*)l_obj);
+    }
+    return l_list;
 }

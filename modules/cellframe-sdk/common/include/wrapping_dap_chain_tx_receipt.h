@@ -50,9 +50,9 @@ PyObject *wrapping_dap_chain_tx_receipt_get_units_type(PyObject *self, void *clo
 PyObject *wrapping_dap_chain_tx_receipt_get_value(PyObject *self, void *closure);
 PyObject *wrapping_dap_chain_tx_receipt_get_sig_provider(PyObject *self, void *closure);
 PyObject *wrapping_dap_chain_tx_receipt_get_sig_client(PyObject *self, void *closure);
-PyObject *wrapping_dap_chain_tx_receipt_sign(PyObject *self, PyObject *args);
+PyObject *wrapping_dap_chain_tx_receipt_sign(PyObject *self, PyObject *sign);
 
-extern PyTypeObject DapChainTxReceiptObject_DapChainTxReceiptTypeObjectType;
+extern PyTypeObject DapChainTxReceiptObjectType;
 
 #ifdef __cplusplus
 extern "C"{

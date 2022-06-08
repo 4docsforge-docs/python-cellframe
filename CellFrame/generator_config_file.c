@@ -107,7 +107,7 @@ void writeChainFiles(char *base_path, PyObject *chains_conf){
         FILE *file_chain;
         char *path_file = dap_strjoin(NULL, base_path, name, ".cfg", NULL);
         if ((file_chain = fopen(path_file, "w")) == NULL){
-            log_it(L_WARNING,"Can't create a \"%s\" file ", path_file);
+            log_it(L_WARNING,"Can't create a \"%s\" file", path_file);
             break;
         }
         writeSectorsToFile(file_chain, cfg, 0);

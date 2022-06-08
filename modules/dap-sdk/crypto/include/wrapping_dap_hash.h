@@ -26,6 +26,7 @@
 #pragma once
 #include <Python.h>
 #include "dap_hash.h"
+#include "wrapping_dap_chain_common.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,11 +40,19 @@ typedef struct PyDapHashType{
 PyObject *DAP_HASH_TYPE_KECCAK_PY();
 PyObject *DAP_HASH_TYPE_SLOW_0_PY();
 
+extern PyTypeObject DapHashTypeObject_DapChainHashTypeObjectType;
+
+/*=================*/
+
 /* Chain hash fast */
 typedef struct PyDapHashFast{
     PyObject_HEAD
     dap_chain_hash_fast_t *hash_fast;
 }PyDapHashFastObject;
+
+PyObject* PyDapHashFast_compare(PyObject *self, PyObject *other, int op);
+
+int PyDapHashFast_init(PyObject *self, PyObject *args, PyObject *kwds);
 
 PyObject *dap_chain_str_to_hash_fast_py(PyObject *self, PyObject *args);
 PyObject *dap_hash_fast_py(PyObject *self, PyObject *args);
@@ -53,11 +62,11 @@ PyObject *dap_chain_hash_fast_to_str_py(PyObject *self, PyObject *args);
 PyObject *dap_chain_hash_fast_to_str_new_py(PyObject *self, PyObject *args);
 PyObject *wrapping_dap_hash_to_str(PyObject *self);
 
-extern PyTypeObject DapHashTypeObject_DapChainHashTypeObjectType;
-extern PyTypeObject DapHashFastObject_DapHashFastObjectType;
+extern PyTypeObject DapChainHashFastObjectType;
 
-static bool PyDapHashFast_Check(PyObject *a_obj){
-    return PyObject_TypeCheck(a_obj, &DapHashFastObject_DapHashFastObjectType);
+static bool PyDapHashFast_Check(PyDapHashFastObject *pyHash)
+{
+    return PyObject_TypeCheck(pyHash, &DapChainHashFastObjectType);
 }
 
 #ifdef __cplusplus

@@ -1,6 +1,67 @@
 #include "wrapping_dap_http_simple.h"
+#include "python-cellframe_common.h"
 
 #define LOG_TAG "wrapping_dap_http_simple"
+
+PyMethodDef PyDapHttpSimpleMethods[] = {
+        //{"addProc", enc_http_add_proc_py, METH_VARARGS | METH_STATIC, ""},
+        {"init", dap_http_simple_module_init_py, METH_NOARGS | METH_STATIC, "Initialization module http simple"},
+        {"deinit", dap_http_simple_module_deinit_py,  METH_NOARGS | METH_STATIC, "Deinitialization module http simple"},
+        {"addProc", dap_http_simple_add_proc_py, METH_VARARGS | METH_STATIC, "Add HTTP URL"},
+        {"setPassUnknownUserAgents", dap_http_simple_set_pass_unknown_user_agents_py, METH_VARARGS | METH_STATIC, ""},
+        {"replyAdd", dap_http_simple_reply_py, METH_VARARGS, "Reply for request"},
+        {NULL, NULL, 0, NULL}
+};
+
+PyGetSetDef PyDapHttpSimpleGetSetDef[] = {
+        {"action", (getter)dap_http_simple_method_py, NULL, "Return action request", NULL},
+        {"request", (getter)dap_http_simple_request_py, NULL, "Return request in view bytes", NULL},
+        {"urlPath", (getter)dap_http_simple_url_path_py, NULL, "Return request in view bytes", NULL},
+        {"query", (getter)dap_http_simple_query_py, NULL, "Return request in view bytes", NULL},
+        {NULL}
+};
+
+PyTypeObject DapHttpSimpleObjectType = {
+        PyVarObject_HEAD_INIT(NULL, 0)
+        "DAP.Met.HttpSimple",             /* tp_name */
+        sizeof(PyDapHttpSimpleObject),                   /* tp_basicsize */
+        0,                                                 /* tp_itemsize */
+        0,                                                 /* tp_dealloc */
+        0,                                                 /* tp_print */
+        0,                                                 /* tp_getattr */
+        0,                                                 /* tp_setattr */
+        0,                                                 /* tp_reserved */
+        0,                                                 /* tp_repr */
+        0,                                                 /* tp_as_number */
+        0,                                                 /* tp_as_sequence */
+        0,                                                 /* tp_as_mapping */
+        0,                                                 /* tp_hash  */
+        0,                                                 /* tp_call */
+        0,                                                 /* tp_str */
+        0,                                                 /* tp_getattro */
+        0,                                                 /* tp_setattro */
+        0,                                                 /* tp_as_buffer */
+        Py_TPFLAGS_DEFAULT |
+        Py_TPFLAGS_BASETYPE,                           /* tp_flags */
+        "Dap http simple object",                         /* tp_doc */
+        0,		                                       /* tp_traverse */
+        0,                        		               /* tp_clear */
+        0,		                                       /* tp_richcompare */
+        0,                        		               /* tp_weaklistoffset */
+        0,		                                       /* tp_iter */
+        0,                        		               /* tp_iternext */
+        PyDapHttpSimpleMethods,                   /* tp_methods */
+        0,                                                 /* tp_members */
+        PyDapHttpSimpleGetSetDef,                          /* tp_getset */
+        0,                                                 /* tp_base */
+        0,                                                 /* tp_dict */
+        0,                                                 /* tp_descr_get */
+        0,                                                 /* tp_descr_set */
+        0,                                                 /* tp_dictoffset */
+        0,                                                 /* tp_init */
+        0,                                                 /* tp_alloc */
+        PyType_GenericNew,                                 /* tp_new */
+};
 
 
 typedef struct wrapping_dap_http_simple_proc{
@@ -27,20 +88,20 @@ void wrapping_dap_http_simple_callback(dap_http_simple_t *sh, void *obj){
     log_it(L_DEBUG, "Handling C module request ...");
     PyGILState_STATE gstate;
     gstate = PyGILState_Ensure();
-    PyObject *obj_func = _w_simple_proc_find(sh->http_client->url_path);
-    PyDapHttpSimpleObject *obj_http_simple = PyObject_NEW(PyDapHttpSimpleObject, &DapHTTPSimple_DapHTTPSimpleType);
-    PyObject *obj_http_status_code = _PyObject_New(&HTTPCode_HTTPCodeType);
+    PyObject *obj_func = _w_simple_proc_find(sh->http_client->proc->url);
+    PyDapHttpSimpleObject *obj_http_simple = PyObject_NEW(PyDapHttpSimpleObject, &DapHttpSimpleObjectType);
+    PyObject *obj_http_status_code = _PyObject_New(&DapHttpCodeObjectType);
     ((PyDapHttpSimpleObject*)obj_http_simple)->sh = sh;
     PyObject_Dir((PyObject*)obj_http_simple);
     http_status_code_t *ret = (http_status_code_t*)obj;
     ((PyHttpStatusCodeObject*)obj_http_status_code)->http_status = *ret;
     PyObject_Dir((PyObject*)obj_http_status_code);
     PyObject *obj_argv = Py_BuildValue("OO", obj_http_simple, obj_http_status_code);
-    PyErr_Print();
+//    python_error_in_log_it(LOG_TAG);
     PyObject *result = PyObject_CallObject(obj_func, obj_argv);
     if (!result){
         log_it(L_DEBUG, "Function can't be called");
-        PyErr_Print();
+        python_error_in_log_it(LOG_TAG);
         *ret = Http_Status_InternalServerError;
     }
     *ret = ((PyHttpStatusCodeObject*)obj_http_status_code)->http_status;
@@ -60,7 +121,7 @@ PyObject *dap_http_simple_add_proc_py(PyObject *self, PyObject *args){
         return NULL;
     } else {
         if (!PyCallable_Check(func_callback)){
-            PyErr_SetString(PyExc_TypeError, "Fourth argument must be a callable");
+            PyErr_SetString(PyExc_TypeError, "Fourth argument must be a callablee");
             return NULL;
         }
     }
@@ -71,7 +132,7 @@ PyObject *dap_http_simple_add_proc_py(PyObject *self, PyObject *args){
                              reply_size_max,
                              wrapping_dap_http_simple_callback);
     log_it(L_NOTICE, "Add processor for \"%s\"", url);
-    return Py_BuildValue("(O)", Py_None);
+    Py_RETURN_NONE;
 }
 PyObject *dap_http_simple_module_init_py(PyObject *self, PyObject *args){
     (void)self;
@@ -83,7 +144,7 @@ PyObject *dap_http_simple_module_deinit_py(PyObject *self, PyObject *args){
     (void)self;
     (void)args;
     dap_http_simple_module_deinit();
-    return Py_BuildValue("(O)", Py_None);
+    Py_RETURN_NONE;
 }
 PyObject *dap_http_simple_set_supported_user_agents_py(PyObject *self, PyObject *args){
     (void)self;
@@ -97,7 +158,7 @@ PyObject *dap_http_simple_set_pass_unknown_user_agents_py(PyObject *self, PyObje
         return NULL;
     }
     dap_http_simple_set_pass_unknown_user_agents(res);
-    return Py_BuildValue("(O)", Py_None);
+    Py_RETURN_NONE;
 }
 PyObject *dap_http_simple_reply_py(PyObject *self, PyObject *args){
     PyObject *l_obj_bytes;
@@ -125,7 +186,7 @@ PyObject *dap_http_simple_request_py(PyDapHttpSimpleObject *self, void *clouser)
     if (self->sh->request)
         return PyBytes_FromString(self->sh->request);
     else
-        return Py_None;
+        Py_RETURN_NONE;
 }
 
 PyObject *dap_http_simple_url_path_py(PyDapHttpSimpleObject *self, void *clouser){

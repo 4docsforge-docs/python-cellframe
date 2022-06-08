@@ -40,7 +40,7 @@ int dap_chain_plugins_command_handler(int a_argc, char **a_argv, char **a_str_re
     char *l_str = NULL;
     switch (l_cmd_name) {
     case CMD_LIST:
-        l_str = dap_strdup("|\tPlugin name\t|\tVersion\t|\tAuthor(s)\t|\n");
+        l_str = dap_strdup("|\tName plugin\t|\tVersion\t|\tAuthor(s)\t|\n");
         LL_FOREACH(dap_chain_plugins_manifests_get_list(), l_element){
             l_str = dap_strjoin(NULL,
                               l_str, "|\t",l_element->name, "\t|\t", l_element->version, "\t|\t", l_element->author, "\t|\n", NULL);
@@ -55,7 +55,7 @@ int dap_chain_plugins_command_handler(int a_argc, char **a_argv, char **a_str_re
             char *l_dep = dap_chain_plugins_manifests_get_list_dependencyes(l_element);
             if (l_dep != NULL){
                 dap_chain_node_cli_set_reply_text(a_str_reply, " Name: %s\n Version: %s\n Author: %s\n"
-                                                               " Description: %s\n Dependencys: %s \n\n",
+                                                               " Description: %s\n Dependencies: %s \n\n",
                                                   l_element->name, l_element->version, l_element->author,
                                                   l_element->description, l_dep);
                 DAP_FREE(l_dep);

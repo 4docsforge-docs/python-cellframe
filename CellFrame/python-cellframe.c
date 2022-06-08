@@ -25,6 +25,101 @@ static bool submodules_deint;
 
 PyObject* CellFrame_error = NULL;
 
+static PyMethodDef DapPythonMethods[] = {
+    {"init", python_dap_init, METH_VARARGS, "Initialization of the Python Cellframe library."},
+    {"deinit", python_dap_deinit, METH_VARARGS, "Deinitialization of the Python Cellframe library."},
+    {"setLogLevel", (PyCFunction)dap_set_log_level, METH_VARARGS, "Setting the logging level."},
+    {"configGetItem", (PyCFunction)py_m_dap_config_get_item, METH_VARARGS, "Get an item from a configuration."},
+    {"configGetItemDefault", (PyCFunction)py_m_dap_config_get_item_default, METH_VARARGS, "Get an item from a configuration with a default value."},
+    {NULL, NULL, 0, NULL}
+};
+
+static PyMethodDef CellFramePythonMethods[] = {
+    {NULL, NULL, 0, NULL}
+};
+
+static char CellFramePythonModuleDoc[] = "CellFrame SDK.Python v"DAP_VERSION" welcomes you!";
+
+static PyModuleDef CellFramePythonModule = {
+    PyModuleDef_HEAD_INIT,
+    "CellFrame",   /* name of module */
+    CellFramePythonModuleDoc, /* module documentation, may be NULL */
+    -1,       /* size of per-interpreter state of the module,
+             or -1 if the module keeps state in global variables. */
+    CellFramePythonMethods,
+};
+
+static PyModuleDef DapPythonModule = {
+    PyModuleDef_HEAD_INIT,
+    "DAP",   /* name of module */
+    "DAP SDK.Python v"DAP_VERSION" welcomes you!", /* module documentation, may be NULL */
+    -1,       /* size of per-interpreter state of the module,
+             or -1 if the module keeps state in global variables. */
+    DapPythonMethods,
+};
+
+static PyModuleDef DapCorePythonModule = {
+    PyModuleDef_HEAD_INIT,
+    "DAP.Core",   /* name of module */
+    NULL, /* module documentation, may be NULL */
+    -1,       /* size of per-interpreter state of the module,
+             or -1 if the module keeps state in global variables. */
+    NULL,
+};
+
+static PyModuleDef DapCryptoPythonModule = {
+    PyModuleDef_HEAD_INIT,
+    "DAP.Crypto",   /* name of module */
+    NULL, /* module documentation, may be NULL */
+    -1,       /* size of per-interpreter state of the module,
+             or -1 if the module keeps state in global variables. */
+    NULL,
+};
+
+static PyModuleDef DapNetPythonModule = {
+    PyModuleDef_HEAD_INIT,
+    "DAP.Network",   /* name of module */
+    NULL, /* module documentation, may be NULL */
+    -1,       /* size of per-interpreter state of the module,
+             or -1 if the module keeps state in global variables. */
+    NULL,
+};
+
+static PyModuleDef CellframeChainPythonModule = {
+    PyModuleDef_HEAD_INIT,
+    "Cellframe.Chain",   /* name of module */
+    NULL, /* module documentation, may be NULL */
+    -1,       /* size of per-interpreter state of the module,
+             or -1 if the module keeps state in global variables. */
+    NULL,
+};
+
+static PyModuleDef CellframeCommonPythonModule = {
+    PyModuleDef_HEAD_INIT,
+    "Cellframe.Common",   /* name of module */
+    NULL, /* module documentation, may be NULL */
+    -1,       /* size of per-interpreter state of the module,
+             or -1 if the module keeps state in global variables. */
+    NULL,
+};
+
+static PyModuleDef CellframeNetworkPythonModule = {
+    PyModuleDef_HEAD_INIT,
+    "Cellframe.Network",   /* name of module */
+    NULL, /* module documentation, may be NULL */
+    -1,       /* size of per-interpreter state of the module,
+             or -1 if the module keeps state in global variables. */
+    NULL,
+};
+
+static PyModuleDef CellframeConsensusPythonModule = {
+    PyModuleDef_HEAD_INIT,
+    "Cellframe.Consensus",   /* name of module */
+    NULL, /* module documentation, may be NULL */
+    -1,       /* size of per-interpreter state of the module,
+             or -1 if the module keeps state in global variables. */
+    NULL,
+};
 
 #ifdef _WIN32
 
@@ -47,7 +142,109 @@ void sigfunc(int sig){
 }
 #endif
 
-PyObject *python_cellframe_init(PyObject *self, PyObject *args){
+PyObject *python_cellframe_init(PyObject *self, PyObject *args)
+{
+    PyObject *cellframeModules = args;
+    Py_ssize_t size_list = PyList_Size(cellframeModules);
+    for (int i=0; i < size_list;i++) {
+        PyObject *value = PyList_GetItem(cellframeModules, i);
+        const char *c_value = PyUnicode_AsUTF8(value);
+        log_it(L_INFO, "Initializing \"%s\" module ...", c_value);
+        if (strcmp(c_value, "Chain") == 0){
+            if(dap_chain_init() != 0){
+                PyErr_SetString(CellFrame_error, "Failed to initialize \"Chain\" module");
+                return NULL;
+            }
+            if (dap_chain_cs_init() != 0){
+                PyErr_SetString(CellFrame_error, "Failed to initialize \"ChainCS\" module");
+                return NULL;
+            }
+        } else if (strcmp(c_value, "Mempool") == 0){
+            if (dap_datum_mempool_init() != 0){
+                PyErr_SetString(CellFrame_error, "Failed to initialize \"Mempool\" module");
+                return NULL;
+            }
+            s_init_mempool = true;
+        } else if (strcmp(c_value, "Wallet") == 0){
+            if (dap_chain_wallet_init_py() != 0){
+                PyErr_SetString(CellFrame_error, "Failed to initialize \"Wallet\" module");
+                return NULL;
+            }
+            s_init_wallet = true;
+        /*        } else if (strcmp(c_value, "ChainCSDag") == 0){
+            if (dap_chain_cs_dag_init() != 0)
+            {
+                PyErr_SetString(CellFrame_error, "Failed to initialize ChainCSDag module. ");
+                return NULL;
+            }
+        } else if (strcmp(c_value, "ChainCSDagPoa") == 0){
+            if (dap_chain_cs_dag_poa_init() != 0){
+                PyErr_SetString(CellFrame_error, "Failed to initialize ChainCSDagPoa module. ");
+                return NULL;
+            }
+        } else if (strcmp(c_value, "ChainCSDagPos") == 0){
+            if (dap_chain_cs_dag_pos_init() != 0){
+                PyErr_SetString(CellFrame_error, "Failed to initialize ChainCSDagPos module. ");
+                return NULL;
+            } */
+        } else if (strcmp(c_value, "ChainNetSrv") == 0){
+            if (dap_chain_net_srv_init() != 0){
+                PyErr_SetString(CellFrame_error, "Failed to initialize \"ChainNetSrv\" module");
+                return NULL;
+            }
+        }else if (strcmp(c_value, "StreamChChain") == 0){
+            if (dap_stream_ch_chain_init() != 0 ){
+                PyErr_SetString(CellFrame_error, "Failed to initialize \"StreamChChain\" module");
+                return NULL;
+            }
+        } else if (strcmp(c_value, "StreamChChainNet") == 0){
+            if (dap_stream_ch_chain_net_init() != 0 ){
+                PyErr_SetString(CellFrame_error, "Failed to initialize \"StreamChChainNet\" module");
+                return NULL;
+            }
+        }else if (strcmp(c_value, "StreamChChainNetSrv") == 0){
+            if (dap_stream_ch_chain_net_init() != 0 ){
+                PyErr_SetString(CellFrame_error, "Failed to initialize \"StreamChChainNetSrv\" module");
+                return NULL;
+            }
+        }else if (strcmp(c_value, "EncKS") == 0){
+        //            if (dap_enc_ks_init())
+        //            if (dap_enc_ks_
+        } else if (strcmp(c_value, "GlobalDB") == 0){
+            if (dap_chain_global_db_init(g_config) != 0){
+                PyErr_SetString(CellFrame_error, "Failed to initialize \"GlobalDB\" module");
+                return NULL;
+            }
+        }else if (strcmp(c_value, "Client") == 0){
+            if (dap_client_init() != 0){
+                PyErr_SetString(CellFrame_error, "Failed to initialize \"Client\" module");
+                return NULL;
+            }
+        }else if (strcmp(c_value, "GDB") == 0){
+            if (dap_chain_gdb_init_py() != 0){
+                PyErr_SetString(CellFrame_error, "Failed to initialize \"GDB\" module");
+                return NULL;
+            }
+        }else if (strcmp(c_value, "Net") == 0){
+            if (dap_chain_net_init_py() != 0 ){
+                PyErr_SetString(CellFrame_error, "Failed to initialize \"Net\" module");
+                return NULL;
+            }
+        }else if (strcmp(c_value, "AppCliServer") == 0){
+            if (dap_chain_node_cli_init(g_config) != 0 ){
+                PyErr_SetString(CellFrame_error, "Failed to initialize \"AppCliServer\" module" );
+                return NULL;
+            }
+        }else{
+            log_it(L_WARNING,"Unknown module: \"%s\"", c_value);
+        }
+        log_it(L_INFO, "Initialization of module is completed");
+    }
+    Py_RETURN_NONE;
+}
+
+PyObject *python_dap_init(PyObject *self, PyObject *args)
+{
     const char *app_name;
     const char *file_name_log;
     const char *config_dir;
@@ -131,8 +328,8 @@ PyObject *python_cellframe_init(PyObject *self, PyObject *args){
     config_dir = PyUnicode_AsUTF8(config_dir_PyObject);
     log_level = PyUnicode_AsUTF8(logLevel_PyObject);
 
-    if (dap_common_init(app_name, file_name_log, NULL) != 0) {
-        PyErr_SetString(CellFrame_error, "Can't initialize SDK library");
+    if (dap_common_init(app_name, file_name_log, NULL ) != 0){
+        PyErr_SetString(CellFrame_error, "Can't initialize CellFrame SDK library");
         return NULL;
     }
     dap_set_appname(app_name);
@@ -160,10 +357,10 @@ PyObject *python_cellframe_init(PyObject *self, PyObject *args){
     int res_gen_config_file = gen_config_files(config_dir, app_name, configure);
     switch (res_gen_config_file) {
     case -1:
-        PyErr_SetString(CellFrame_error, "Can't generate configuration files. Directory path must contain only ASCII simbols.");
+        PyErr_SetString(CellFrame_error, "Can't generate configuration files. Directory path must contain only ASCII simbols");
         return NULL;
     case -3:
-        PyErr_SetString(CellFrame_error, "Can't generate configuration files. Can't open a file stream.");
+        PyErr_SetString(CellFrame_error, "Can't generate configuration files. Can't open a file stream");
         return NULL;
     }
     //Init config
@@ -193,7 +390,7 @@ PyObject *python_cellframe_init(PyObject *self, PyObject *args){
             dap_cert_init();
         } else if (strcmp(c_value, "Events") == 0){
             dap_events_init(0,0);
-            events = _PyObject_New(&dapEvents_dapEventsType);
+            events = _PyObject_New(&DapEventsObjectType);
             ((PyDapEventsObject*)events)->t_events = dap_events_new();
             dap_events_start(((PyDapEventsObject*)events)->t_events);
         } else if (strcmp(c_value, "Server") == 0){
@@ -205,7 +402,7 @@ PyObject *python_cellframe_init(PyObject *self, PyObject *args){
             PyObject* getServerCoreData = PyDict_GetItemString(result, "ServerCore");
             if (getServerCoreData == NULL){
                 PyErr_SetString(CellFrame_error, "Failed to initialize \"ServerCore\" module."
-                                                "Can't find \"ServerCore\" object in JSON string");
+                                "Can't find \"ServerCore\" object in JSON string");
                 return NULL;
             }
             PyObject* Nl_thread_cnt = PyDict_GetItemString(getServerCoreData, "thread_cnt");
@@ -225,15 +422,6 @@ PyObject *python_cellframe_init(PyObject *self, PyObject *args){
                 return NULL;
             }
             s_init_server_core = true;
-        } else if (strcmp(c_value, "Chain") == 0){
-            if(init_chain_py() != 0){
-                PyErr_SetString(CellFrame_error, "Failed to initialize \"Chain\" module");
-                return NULL;
-            }
-            if (dap_chain_cs_init_py() != 0){
-                PyErr_SetString(CellFrame_error, "Failed to initialize \"ChainCS\"");
-                return NULL;
-            }
         } else if (strcmp(c_value, "Http") == 0){
             if(dap_http_init() != 0){
                 PyErr_SetString(CellFrame_error, "Failed to initialize \"Http\" module");
@@ -261,7 +449,7 @@ PyObject *python_cellframe_init(PyObject *self, PyObject *args){
             PyObject* getStreamData = PyDict_GetItemString(result, "Stream");
             if (getStreamData == NULL){
                 PyErr_SetString(CellFrame_error, "Failed to initialize \"Stream\" module."
-                                                "Can't find \"ServerCore\" object in JSON string.");
+                                "Can't find \"ServerCore\" object in JSON string");
                 return NULL;
             }
             PyObject *debugDumpStreamHeadersObj = PyDict_GetItemString(getStreamData, "DebugDumpStreamHeaders");
@@ -271,22 +459,16 @@ PyObject *python_cellframe_init(PyObject *self, PyObject *args){
                 return NULL;
             }
             if(dap_stream_init(g_config) != 0){
-                PyErr_SetString(CellFrame_error, "Failed to initialize \"Stream\" module. ");
+                PyErr_SetString(CellFrame_error, "Failed to initialize \"Stream\" module");
                 return NULL;
             }
             s_init_stream = true;
         } else if (strcmp(c_value, "StreamCtl") == 0){
             if (dap_stream_ctl_init_py(32) != 0){
-                PyErr_SetString(CellFrame_error, "Failed to initialize \"StreamCtl\" module. ");
+                PyErr_SetString(CellFrame_error, "Failed to initialize \"StreamCtl\" module");
                 return NULL;
             }
             s_init_stream_ctl = true;
-        } else if (strcmp(c_value, "Mempool") == 0){
-            if (dap_datum_mempool_init() != 0){
-                PyErr_SetString(CellFrame_error, "Failed to initialize \"Mempool\" module. ");
-                return NULL;
-            }
-            s_init_mempool = true;
         /*
         } else if (strcmp(c_value, "HttpClientSimple") == 0){
             if (dap_http_client_simple_init() != 0){
@@ -294,295 +476,260 @@ PyObject *python_cellframe_init(PyObject *self, PyObject *args){
                 return NULL;
             }
             s_init_http_client_simple = true;*/
-        } else if (strcmp(c_value, "Wallet") == 0){
-            if (dap_chain_wallet_init_py() != 0){
-                PyErr_SetString(CellFrame_error, "Failed to initialize \"Wallet\" module. ");
-                return NULL;
-            }
-            s_init_wallet = true;
-/*        } else if (strcmp(c_value, "ChainCSDag") == 0){
-            if (dap_chain_cs_dag_init() != 0)
-            {
-                PyErr_SetString(CellFrame_error, "Failed to initialize ChainCSDag module. ");
-                return NULL;
-            }
-        } else if (strcmp(c_value, "ChainCSDagPoa") == 0){
-            if (dap_chain_cs_dag_poa_init() != 0){
-                PyErr_SetString(CellFrame_error, "Failed to initialize ChainCSDagPoa module. ");
-                return NULL;
-            }
-        } else if (strcmp(c_value, "ChainCSDagPos") == 0){
-            if (dap_chain_cs_dag_pos_init() != 0){
-                PyErr_SetString(CellFrame_error, "Failed to initialize ChainCSDagPos module. ");
-                return NULL;
-            } */
-        } else if (strcmp(c_value, "ChainNetSrv") == 0){
-            if (dap_chain_net_srv_init(g_config) != 0){
-                PyErr_SetString(CellFrame_error, "Failed to initialize \"ChainNetSrv\" module");
-                return NULL;
-            }
-        }else if (strcmp(c_value, "StreamChChain") == 0){
-            if (dap_stream_ch_chain_init() != 0 ){
-                PyErr_SetString(CellFrame_error, "Failed to initialize \"StreamChChain\" module");
-                return NULL;
-            }
-        } else if (strcmp(c_value, "StreamChChainNet") == 0){
-            if (dap_stream_ch_chain_net_init() != 0 ){
-                PyErr_SetString(CellFrame_error, "Failed to initialize \"StreamChChainNet\" module");
-                return NULL;
-            }
-        }else if (strcmp(c_value, "StreamChChainNetSrv") == 0){
-            if (dap_stream_ch_chain_net_init() != 0 ){
-                PyErr_SetString(CellFrame_error, "Failed to initialize \"StreamChChainNetSrv\" module");
-                return NULL;
-            }
-        }else if (strcmp(c_value, "EncKS") == 0){
-//            if (dap_enc_ks_init())
-//            if (dap_enc_ks_
-        } else if (strcmp(c_value, "GlobalDB") == 0){
-            if (dap_chain_global_db_init(g_config) != 0){
-                PyErr_SetString(CellFrame_error, "Failed to initialize \"GlobalDB\" module");
-                return NULL;
-            }
-        }else if (strcmp(c_value, "Client") == 0){
-            if (dap_client_init() != 0){
-                PyErr_SetString(CellFrame_error, "Failed to initialize \"Client\" module");
-                return NULL;
-            }
-        }else if (strcmp(c_value, "GDB") == 0){
-            if (dap_chain_gdb_init_py() != 0){
-                PyErr_SetString(CellFrame_error, "Failed to initialize \"GDB\" module");
-                return NULL;
-            }
-        }else if (strcmp(c_value, "Net") == 0){
-            if (dap_chain_net_init_py() != 0 ){
-                PyErr_SetString(CellFrame_error, "Failed to initialize \"Net\" module");
-                return NULL;
-            }
-        }else if (strcmp(c_value, "AppCliServer") == 0){
-            if (dap_chain_node_cli_init(g_config) != 0 ){
-                PyErr_SetString(CellFrame_error, "Failed to initialize \"AppCliServer\" module" );
-                return NULL;
-            }
-        }else{
-            log_it(L_WARNING,"Unknown module: \"%s\"", c_value);
         }
-        log_it(L_INFO, "Initialization of modules is completed");
     }
+    python_cellframe_init(NULL, getModules);        // TODO replace it with module init function
     if (events == NULL)
         return PyLong_FromLong(0);
-    else
-        return Py_BuildValue("iO", PyLong_FromLong(0), events);
+    else {
+        Py_INCREF(events);
+        return Py_BuildValue("iO", 0, events);
+    }
 }
 
-PyMODINIT_FUNC PyInit_libCellFrame(void){
+PyMODINIT_FUNC PyInit_libDAP()
+{
+    /* === DAP === */
+    if (
+        // === Core ===
+        PyType_Ready( &DapCoreObjectType ) < 0 ||
+        PyType_Ready( &DapLogitObjectType ) < 0 ||
+        PyType_Ready(&DapMathObjectType) < 0 ||
+#ifdef DAP_SUPPORT_PYTHON_PLUGINS
+        PyType_Ready( &DapAppContextObjectType) < 0 ||
+#endif
+        // === Crypto ===
+        PyType_Ready( &DapCryptoAlgoObjectType ) < 0 ||
+        PyType_Ready( &DapCryptoCertObjectType ) < 0 ||
+        PyType_Ready( &DapCryptoKeyTypeObjectType ) < 0 ||
+        PyType_Ready( &DapCryptoDataTypeObjectType ) < 0 ||
+        PyType_Ready( &DapCryproSignTypeObjectType ) < 0 ||
+        PyType_Ready( &DapCryptoSignObjectType ) < 0 ||
+        PyType_Ready( &DapChainHashFastObjectType ) < 0 ||
+        // === Network ==
+        PyType_Ready( &DapServerCoreObjectType ) < 0 ||
+        PyType_Ready( &DapEventsObjectType ) < 0 ||
+        PyType_Ready( &DapEventsSocketObjectType ) < 0 ||
+        PyType_Ready( &DapHttpCodeObjectType ) < 0 ||
+        PyType_Ready( &DapHttpObjectType ) < 0 ||
+        PyType_Ready( &DapHttpSimpleObjectType ) < 0 ||
+        PyType_Ready( &DapEncServerObjectType ) < 0 ||
+        PyType_Ready( &DapStreamObjectType ) < 0 ||
+        PyType_Ready( &DapStreamCtlObjectType ) < 0 ||
+        PyType_Ready( &DapJsonRpcRequestObjectType ) < 0 ||
+        PyType_Ready( &DapJsonRpcResponseobjectType ) < 0
+        ) {
+        log_it(L_CRITICAL,"Not all python type objects are initialized for DAP module");
+        return NULL;
+    }
+    PyObject *coreModule = PyModule_Create(&DapCorePythonModule);
+    PyModule_AddObject(coreModule, "logIt", (PyObject *)&DapLogitObjectType);
+    PyModule_AddObject(coreModule, "Math", (PyObject *)&DapMathObjectType);
+#ifdef DAP_SUPPORT_PYTHON_PLUGINS
+    PyModule_AddObject(coreModule, "AppContext", (PyObject*)&DapAppContextObjectType);
+#endif
 
-    if (    PyType_Ready( &DapCoreObjectType ) < 0 ||
-            PyType_Ready( &g_crypto_type_py ) < 0 ||
-            PyType_Ready( &g_crypto_cert_type_py ) < 0 ||
-            PyType_Ready( &ServerCore_ServerCoreType ) < 0 ||
-            PyType_Ready( &dapEvents_dapEventsType ) < 0 ||
-            PyType_Ready( &dapEventsSocket_dapEventsSocketType ) < 0 ||
-            PyType_Ready( &CryptoKeyTypeObjecy_CryptoKeyTypeObjecyType ) < 0 ||
-            PyType_Ready( &CryptoDataTypeObjecy_CryptoDataTypeObjecyType ) < 0 ||
-            PyType_Ready(&DapSignObject_DapSignObjectType) < 0 ||
-            PyType_Ready(&DapSignTypeObject_DapSignTypeObjectType) < 0 ||
-            // === Chain ===
-            PyType_Ready( &dapChainObject_dapChainType ) < 0 ||
-            PyType_Ready( &dapChainTypeObject_dapChainTypeType ) < 0 ||
-            PyType_Ready( &DapChainAtomIter_DapChainAtomIterType ) < 0 ||
-            PyType_Ready(&DapChainAtomPtr_DapChainAtomPtrType) < 0 ||
-            PyType_Ready( &DapChainCell_DapChainCellObjectType ) < 0 ||
-            PyType_Ready(&DapChainCommonObject_DapChainCommonType) < 0 ||
+    PyObject *cryptoModule = PyModule_Create(&DapCryptoPythonModule);
+    PyModule_AddObject(cryptoModule, "Algo", (PyObject*)&DapCryptoAlgoObjectType);
+    PyModule_AddObject(cryptoModule, "Cert", (PyObject*)&DapCryptoCertObjectType);
+    PyModule_AddObject(cryptoModule, "SignType", (PyObject*)&DapCryproSignTypeObjectType);
+    PyModule_AddObject(cryptoModule, "Sign", (PyObject*)&DapCryptoSignObjectType);
+    PyModule_AddObject(cryptoModule, "CryptoKeyType", (PyObject*)&DapCryptoKeyTypeObjectType);
+    PyModule_AddObject(cryptoModule, "CryptoDataType", (PyObject*)&DapCryptoDataTypeObjectType);
+    PyModule_AddObject(cryptoModule, "HashFast", (PyObject*)&DapChainHashFastObjectType);
 
-            PyType_Ready( &DapChainCellIDObject_DapChainCellIDType) < 0 ||
-            PyType_Ready( &DapChainCellIDObject_DapChainCellIDType) < 0 ||
-            PyType_Ready( &DapChainNodeAddrObject_DapChainNodeAddrObjectType) < 0 ||
-            PyType_Ready( &DapChainHashSlowObject_DapChainHashSlowObjectType) < 0 ||
-            PyType_Ready( &DapHashFastObject_DapHashFastObjectType) < 0 ||
-            PyType_Ready( &DapChainHashSlowObject_DapChainHashSlowObjectType) < 0 ||
-            PyType_Ready( &DapChainAddrObject_DapChainAddrObjectType) < 0 ||
+    PyObject *netModule = PyModule_Create(&DapNetPythonModule);
+    PyModule_AddObject(netModule, "ServerCore", (PyObject*)&DapServerCoreObjectType);
+    PyModule_AddObject(netModule, "Events", (PyObject*)&DapEventsObjectType);
+    PyModule_AddObject(netModule, "EventsSocket", (PyObject*)&DapEventsSocketObjectType);
+    PyModule_AddObject(netModule, "Http", (PyObject*)&DapHttpObjectType);
+    PyModule_AddObject(netModule, "HttpCode", (PyObject*)&DapHttpCodeObjectType);
+    PyModule_AddObject(netModule, "HttpSimple", (PyObject*)&DapHttpSimpleObjectType);
+    PyModule_AddObject(netModule, "EncHttp", (PyObject*)&DapEncServerObjectType);
+    PyModule_AddObject(netModule, "Stream", (PyObject*)&DapStreamObjectType);
+    PyModule_AddObject(netModule, "StreamCtl", (PyObject*)&DapStreamCtlObjectType);
+    PyModule_AddObject(netModule, "JSONRPCRequest", (PyObject*)&DapJsonRpcRequestObjectType);
+    PyModule_AddObject(netModule, "JSONRPCResponse", (PyObject*)&DapJsonRpcResponseobjectType);
 
-            PyType_Ready( &DapChainCsObject_DapChainCsObjectType) < 0 ||
-            PyType_Ready( &DapChainDatumTypeIdObject_DapChainDatumTypeIdObjectType) < 0 ||
-            PyType_Ready( &DapChainDatumObject_DapChainDatumObjectType) < 0 ||
-            PyType_Ready(&DapChainDatumIterObject_DapChainDatumIterObjectType) < 0 ||
-            PyType_Ready(&DapChainDatumToken_DapChainDatumTokenObjectType) < 0 ||
-            PyType_Ready(&DapChainTxTokenExt_DapChainTxTokenExtType) < 0 ||
-            PyType_Ready(&DapChainDatumTokenEmission_DapChainDatumTokenEmissionObjectType) < 0 ||
-            PyType_Ready(&DapChainTxItemObject_DapChainTxItemTypeObjectType) < 0 ||
-            PyType_Ready(&DapChainTxCondType_DapChainTxCondTypeObject) < 0 ||
-            PyType_Ready(&DapChainDatumTx_DapChainDatumTxObjectType) < 0 ||
-            PyType_Ready(&DapChainTxOutCond_DapChainTxOutCondType) < 0 ||
-            PyType_Ready(&DapChainTxOutCondSubTypeSrvPay_DapChainTxOutCondSubTypeSrvPayObject) < 0 ||
-            PyType_Ready(&DapChainTxOutCondSubTypeSrvStake_DapChainTxOutCondSubTypeSrvStakeObject) < 0 ||
-            PyType_Ready(&DapChainTxOutCondSubTypeSrvXchange_DapChainTxOutCondSubTypeSrvXchangeObject) < 0 ||
-            PyType_Ready(&DapChainLedger_DapChainLedgerType) < 0 ||
-            PyType_Ready(&DapChainTxInObject_DapChainTxInTypeObjectType) < 0 ||
-            PyType_Ready(&DapChainTxInCondObject_DapChainTxInCondTypeObjectType) < 0 ||
-            PyType_Ready(&DapChainTxOutObject_DapChainTxOutTypeObjectType) < 0 ||
-            PyType_Ready(&DapChainTxPkeyObject_DapChainTxPkeyTypeObjectType) < 0 ||
-            PyType_Ready(&DapChainTxReceiptObject_DapChainTxReceiptTypeObjectType) < 0 ||
-            PyType_Ready(&DapChainTxOutExtObject_DapChainTxOutExtTypeObjectType) < 0 ||
-            // =============
-            // === Chain net ===
-            PyType_Ready(&DapChainNetObject_DapChainNetObjectType) < 0 ||
-            PyType_Ready(&DapChainNodeCliObject_DapChainNodeCliObjectType) < 0 ||
-            PyType_Ready(&DapChainNodeClientObject_DapChainNodeClientObjectType) < 0 ||
-            PyType_Ready(&DapChainNodeInfoObject_DapChainNodeInfoObjectType) < 0 ||
-            PyType_Ready(&DapChainNetNodeObject_DapChainNetNodeObjectType) < 0 ||
-            PyType_Ready(&DapChainNetStateObject_DapChainNetStateObjectType) < 0 ||
-            // =============
-            // === Chain net srv ===
-            PyType_Ready(&DapChainNetSrvObject_DapChainNetSrvObjectType) < 0 ||
-            PyType_Ready(&DapChainNetSrvClientObject_DapChainNetSrvClientObjectType) < 0 ||
-            PyType_Ready(&DapChainNetSrvClientRemoteObject_DapChainNetSrvClientRemoteObjectType) < 0 ||
-            PyType_Ready(&DapChainNetSrvUIDObject_DapChainNetSrvUIDObjectType) < 0 ||
-            PyType_Ready(&DapChainNetSrvOrderObject_DapChainNetSrvOrderObjectType) < 0 ||
-            PyType_Ready(&DapChainNetSrvOrderDirectionObject_DapChainNetSrvOrderDirectionObjectType) < 0 ||
-            PyType_Ready(&DapChainNetSrvPriceUnitUIDObject_DapChainNetSrvPriceUnitUIDObjectType) < 0 ||
-            // =============
+    PyObject *dapModule = PyModule_Create(&DapPythonModule);
+    PyModule_AddStringConstant(dapModule, "__author__", "Alexey Stratulat <alexey.stratulat@demlabs.net>");
+    PyModule_AddStringConstant(dapModule, "__version__", DAP_VERSION);
+    PyModule_AddObject(dapModule, "error", PyErr_NewException("DAP.error", NULL, NULL));
+    PyObject *moduleDict = PyImport_GetModuleDict();
+    Py_INCREF(coreModule);
+    PyModule_AddObject(dapModule, "Core", coreModule);
+    PyDict_SetItemString(moduleDict, "DAP.Core", coreModule);
+    Py_INCREF(cryptoModule);
+    PyModule_AddObject(dapModule, "Crypto", cryptoModule);
+    PyDict_SetItemString(moduleDict, "DAP.Crypto", cryptoModule);
+    Py_INCREF(netModule);
+    PyModule_AddObject(dapModule, "Network", netModule);
+    PyDict_SetItemString(moduleDict, "DAP.Network", netModule);
+    return dapModule;
+}
 
 
-            PyType_Ready(&DapChainGDBObject_DapChainGDBType) < 0 ||
-            PyType_Ready(&DapChainGlobalDBObject_DapChainDlobalDBType) < 0 ||
-
-            PyType_Ready(&DapHTTP_DapHTTPType) < 0 ||
-            PyType_Ready(&DapEncServer_DapEncServerType) < 0 ||
-            PyType_Ready(&DapStream_DapStreamType) < 0 ||
-            PyType_Ready(&DapStreamCtl_DapStreamCtlType) < 0 ||
-            PyType_Ready(&DapMempool_DapMempoolType) < 0 ||
-            // ====
-            PyType_Ready(&DapAppCli_dapAppCliType ) < 0 ||
-            PyType_Ready(&DapChainWallet_dapChainWalletType) < 0 ||
-            PyType_Ready(&HTTPCode_HTTPCodeType) < 0 ||
-            PyType_Ready(&DapJSONRPCRequest_DapJSONRPCRequestType) < 0 ||
-            PyType_Ready(&DapJSONRPCResponse_DapJSONRPCResponseType) < 0 ||
-            PyType_Ready(&DapChainCsDag_DapChainCsDagType) < 0 ||
-            PyType_Ready(&DapChainCsDagEvent_DapChainCsDagEventType) < 0 ||
-            #ifdef DAP_SUPPORT_PYTHON_PLUGINS
-                PyType_Ready(&DapHTTPSimple_DapHTTPSimpleType) < 0 ||
-                PyType_Ready(&dapAppContext_dapAppContextType) < 0
-            #else
-                PyType_Ready(&DapHTTPSimple_DapHTTPSimpleType) < 0
-            #endif
-            ){
-        log_it(L_CRITICAL,"Not all python type objects are initialized");
+PyMODINIT_FUNC PyInit_libCellFrame(void)
+{
+        /* === Cellframe === */
+    if (
+        // ==== Common ===
+        PyType_Ready( &DapAppCliObjectType ) < 0 ||
+        // === Chain ===
+        PyType_Ready( &DapChainObjectType ) < 0 ||
+        PyType_Ready( &DapChainIdObjectType ) < 0 ||
+        PyType_Ready( &DapChainTypeObjectType ) < 0 ||
+        PyType_Ready( &DapChainAtomIterObjectType ) < 0 ||
+        PyType_Ready( &DapChainAtomPtrObjectType ) < 0 ||
+        PyType_Ready( &DapChainCellObjectType ) < 0 ||
+        PyType_Ready( &DapChainMempoolObjectType ) < 0 ||
+        PyType_Ready( &DapChainCellIdObjectType ) < 0 ||
+        PyType_Ready( &DapChainNodeAddrObjectType ) < 0 ||
+        PyType_Ready( &DapChainHashSlowKindObjectType ) < 0 ||
+        PyType_Ready( &DapChainHashSlowObjectType ) < 0 ||
+        PyType_Ready( &DapChainAddrObjectType ) < 0 ||
+        PyType_Ready( &DapChainCsObjectType ) < 0 ||
+        PyType_Ready( &DapChainLedgerObjectType ) < 0 ||
+        PyType_Ready( &DapChainWalletObjectType ) < 0 ||
+        PyType_Ready(&DapChainGlobalDBObjectType) < 0 ||
+        PyType_Ready(&DapChainGlobalDBContainerObjectType) < 0 ||
+        // === Chain datum
+        /// Common
+        PyType_Ready( &DapChainDatumTypeIdObjectType ) < 0 ||
+        PyType_Ready( &DapChainDatumObjectType ) < 0 ||
+        PyType_Ready( &DapChainDatumIterObjectType ) < 0 ||
+        /// Token
+        PyType_Ready( &DapChainDatumTokenObjectType ) < 0 ||
+        PyType_Ready( &DapChainDatumTokenEmissionObjectType ) < 0 ||
+        /// Transaction
+        PyType_Ready( &DapChainDatumTxObjectType ) < 0 ||
+        PyType_Ready( &DapChainTxItemTypeObjectType ) < 0 ||
+        PyType_Ready( &DapChainTxTokenExtType ) < 0 ||
+        PyType_Ready( &DapChainTxCondTypeObjectType ) < 0 ||
+        PyType_Ready( &DapChainTxOutCondObjectType ) < 0 ||
+        PyType_Ready( &DapChainTxOutCondSubTypeSrvPayObjectType ) < 0 ||
+        PyType_Ready( &DapChainTxOutCondSubTypeSrvStakeObjectType ) < 0 ||
+        PyType_Ready( &DapChainTxOutCondSubTypeSrvXchangeObjectType ) < 0 ||
+        PyType_Ready( &DapChainTxInObjectType ) < 0 ||
+        PyType_Ready( &DapChainTxInCondObjectType ) < 0 ||
+        PyType_Ready( &DapChainTxOutObjectType ) < 0 ||
+        PyType_Ready( &DapChainTxPkeyObjectType ) < 0 ||
+        PyType_Ready( &DapChainTxReceiptObjectType ) < 0 ||
+        PyType_Ready( &DapChainTxOutExtObjectType ) < 0 ||
+        // === Chain net ===
+        /// Node
+        PyType_Ready( &DapChainNodeObjectType ) < 0 ||
+        PyType_Ready( &DapChainNodeCliObjectType ) < 0 ||
+        PyType_Ready( &DapChainNodeClientObjectType ) < 0 ||
+        PyType_Ready( &DapChainNodeInfoObjectType ) < 0 ||
+        /// Net
+        PyType_Ready( &DapChainNetObjectType ) < 0 ||
+        PyType_Ready( &DapChainNetIdObjectType ) < 0 ||
+        PyType_Ready( &DapChainNetStateObjectType ) < 0 ||
+        /// Srv
+        PyType_Ready( &DapChainNetSrvObjectType ) < 0 ||
+        PyType_Ready( &DapChainNetSrvClientObjectType ) < 0 ||
+        PyType_Ready( &DapChainNetSrvOrderDirectionObjectType ) < 0 ||
+        PyType_Ready( &DapChainNetSrvOrderObjectType ) < 0 ||
+        PyType_Ready( &DapChainNetSrvUidObjectType ) < 0 ||
+        PyType_Ready( &DapChainNetSrvPriceObjectType ) < 0 ||
+        PyType_Ready( &DapChainNetSrvPriceUnitUidObjectType ) < 0 ||
+        // === Chain consensuses
+        PyType_Ready( &DapChainCsDagPoaObjectType ) < 0 ||
+        PyType_Ready(&DapChainCsBlockType) < 0 ||
+        PyType_Ready(&DapChainCsDagType) < 0 ||
+        PyType_Ready(&DapChainCsDagEventType) < 0 ||
+        PyType_Ready( &DapChainGdbObjectType ) < 0
+        ) {
+        log_it(L_CRITICAL,"Not all python type objects are initialized for CellFrame module");
         return NULL;
     }
 
-    PyObject *module = PyModule_Create(&CellFramePythonModule);
-    PyModule_AddStringConstant(module, "__author__", "Alexey Stratulat <alexey.stratulat@demlabs.net>");
-    PyModule_AddStringConstant(module, "__version__", DAP_VERSION);
+    PyObject *chainModule = PyModule_Create(&CellframeChainPythonModule);
+    PyModule_AddObject(chainModule, "Chain", (PyObject*)&DapChainObjectType);
+    PyModule_AddObject(chainModule, "ChainType", (PyObject*)&DapChainTypeObjectType);
+    PyModule_AddObject(chainModule, "ChainAtomIter", (PyObject*)&DapChainAtomIterObjectType);
+    PyModule_AddObject(chainModule, "ChainAtomPtr", (PyObject*)&DapChainAtomPtrObjectType);
+    PyModule_AddObject(chainModule, "ChainCell", (PyObject*)&DapChainCellObjectType);
+    PyModule_AddObject(chainModule, "ChainID", (PyObject*)&DapChainIdObjectType);
+    PyModule_AddObject(chainModule, "ChainCellID", (PyObject*)&DapChainCellIdObjectType);
+    PyModule_AddObject(chainModule, "ChainHashSlow", (PyObject*)&DapChainHashSlowObjectType);
+    PyModule_AddObject(chainModule, "ChainHashSlowKind", (PyObject*)&DapChainHashSlowKindObjectType);
+    PyModule_AddObject(chainModule, "ChainAddr", (PyObject*)&DapChainAddrObjectType);
+    PyModule_AddObject(chainModule, "ChainCS", (PyObject*)&DapChainCsObjectType);
+    PyModule_AddObject(chainModule, "GlobalDB", (PyObject*)&DapChainGlobalDBObjectType);
+    PyModule_AddObject(chainModule, "Wallet", (PyObject*)&DapChainWalletObjectType);
+    PyModule_AddObject(chainModule, "Mempool", (PyObject*)&DapChainMempoolObjectType);
+    PyModule_AddObject(chainModule, "Ledger", (PyObject*)&DapChainLedgerObjectType);
 
-    CellFrame_error = PyErr_NewException("CellFrame.error", NULL, NULL);
+    PyObject *commonModule = PyModule_Create(&CellframeCommonPythonModule);
+    PyModule_AddObject(commonModule, "DatumTypeID", (PyObject*)&DapChainDatumTypeIdObjectType);
+    PyModule_AddObject(commonModule, "Datum", (PyObject*)&DapChainDatumObjectType);
+    PyModule_AddObject(commonModule, "DatumIter", (PyObject*)&DapChainDatumIterObjectType);
+    PyModule_AddObject(commonModule, "DatumToken", (PyObject*)&DapChainDatumTokenObjectType);
+    PyModule_AddObject(commonModule, "DatumTokenExt", (PyObject*)&DapChainTxTokenExtType);
+    PyModule_AddObject(commonModule, "DatumEmission", (PyObject*)&DapChainDatumTokenEmissionObjectType);
+    PyModule_AddObject(commonModule, "TxItemType", (PyObject*)&DapChainTxItemTypeObjectType);
+    PyModule_AddObject(commonModule, "TxCondType", (PyObject*)&DapChainTxCondTypeObjectType);
+    PyModule_AddObject(commonModule, "DatumTx", (PyObject*)&DapChainDatumTxObjectType);
+    PyModule_AddObject(commonModule, "TxOutCond", (PyObject*)&DapChainTxOutCondObjectType);
+    PyModule_AddObject(commonModule, "TxOutCondSubtypeSrvPay", (PyObject*)&DapChainTxOutCondSubTypeSrvPayObjectType);
+    PyModule_AddObject(commonModule, "TxOutCondSubtypeSrvStake", (PyObject*)&DapChainTxOutCondSubTypeSrvStakeObjectType);
+    PyModule_AddObject(commonModule, "TxOutCondSubtypeSrvXchange", (PyObject*)&DapChainTxOutCondSubTypeSrvXchangeObjectType);
+    PyModule_AddObject(commonModule, "TxIn", (PyObject*)&DapChainTxInObjectType);
+    PyModule_AddObject(commonModule, "TxInCond", (PyObject*)&DapChainTxInCondObjectType);
+    PyModule_AddObject(commonModule, "TxOut", (PyObject*)&DapChainTxOutObjectType);
+    PyModule_AddObject(commonModule, "TxPkey", (PyObject*)&DapChainTxPkeyObjectType);
+    PyModule_AddObject(commonModule, "TxReceipt", (PyObject*)&DapChainTxReceiptObjectType);
+    PyModule_AddObject(commonModule, "TxOutExt", (PyObject*)&DapChainTxOutExtObjectType);
 
-    PyModule_AddObject(module, "error", CellFrame_error);
-
-    PyModule_AddIntConstant(module, "DEBUG", L_DEBUG);
-    PyModule_AddIntConstant(module, "INFO", L_INFO);
-    PyModule_AddIntConstant(module, "NOTICE", L_NOTICE);
-    PyModule_AddIntConstant(module, "MESSAGE", L_MSG);
-    PyModule_AddIntConstant(module, "DAP", L_DAP);
-    PyModule_AddIntConstant(module, "WARNING", L_WARNING);
-    PyModule_AddIntConstant(module, "ATT", L_ATT);
-    PyModule_AddIntConstant(module, "ERROR", L_ERROR);
-    PyModule_AddIntConstant(module, "CRITICAL", L_CRITICAL);
-
-    PyModule_AddObject(module, "Crypto", (PyObject*)&g_crypto_type_py);
-    PyModule_AddObject(module, "Cert", (PyObject*)&g_crypto_cert_type_py);
-    PyModule_AddObject(module, "SignType", (PyObject*)&DapSignTypeObject_DapSignTypeObjectType);
-    PyModule_AddObject(module, "Sign", (PyObject*)&DapSignObject_DapSignObjectType);
-
-    PyModule_AddObject(module, "ServerCore", (PyObject*)&ServerCore_ServerCoreType);
-    PyModule_AddObject(module, "Events", (PyObject*)&dapEvents_dapEventsType);
-    PyModule_AddObject(module, "EventsSocket", (PyObject*)&dapEventsSocket_dapEventsSocketType);
-
-    PyModule_AddObject(module, "CryptoKeyType", (PyObject*)&CryptoKeyTypeObjecy_CryptoKeyTypeObjecyType);
-    PyModule_AddObject(module, "CryptoDataType", (PyObject*)&CryptoDataTypeObjecy_CryptoDataTypeObjecyType);
-
-    // === Chain ===
-    PyModule_AddObject(module, "Chain", (PyObject*)&dapChainObject_dapChainType);
-    PyModule_AddObject(module, "ChainType", (PyObject*)&dapChainTypeObject_dapChainTypeType);
-    PyModule_AddObject(module, "ChainAtomIter", (PyObject*)&DapChainAtomIter_DapChainAtomIterType);
-    PyModule_AddObject(module, "ChainAtomPtr", (PyObject*)&DapChainAtomPtr_DapChainAtomPtrType);
-    PyModule_AddObject(module, "ChainCell", (PyObject*)&DapChainCell_DapChainCellObjectType);
-    PyModule_AddObject(module, "ChainCommon", (PyObject*)&DapChainCommonObject_DapChainCommonType);
-
-//    PyModule_AddObject(module, "ChainID", (PyObject*)&DapChainIDObject_DapChainIDType);
-    PyModule_AddObject(module, "ChainCellID", (PyObject*)&DapChainCellIDObject_DapChainCellIDType);
-    PyModule_AddObject(module, "ChainNodeAddr", (PyObject*)&DapChainNodeAddrObject_DapChainNodeAddrObjectType);
-////    PyModule_AddObject(module, "ChainNetID", (PyObject*)&DapChainNetIdObject_DapChainNetIdObjectType);
-    PyModule_AddObject(module, "ChainHashSlow", (PyObject*)&DapChainHashSlowObject_DapChainHashSlowObjectType);
-    PyModule_AddObject(module, "ChainHashFast", (PyObject*)&DapHashFastObject_DapHashFastObjectType);
-//    PyModule_AddObject(module, "ChainHAshSlowKind", (PyObject*)&DapChainSlowKindObject_DapChainSlowKindType);
-    PyModule_AddObject(module, "ChainAddr", (PyObject*)&DapChainAddrObject_DapChainAddrObjectType);
-//
-    PyModule_AddObject(module, "ChainCS", (PyObject*)&DapChainCsObject_DapChainCsObjectType);
-    PyModule_AddObject(module, "ChainDatumTypeID", (PyObject*)&DapChainDatumTypeIdObject_DapChainDatumTypeIdObjectType);
-    PyModule_AddObject(module, "ChainDatum", (PyObject*)&DapChainDatumObject_DapChainDatumObjectType);
-    PyModule_AddObject(module, "ChainDatumIter", (PyObject*)&DapChainDatumIterObject_DapChainDatumIterObjectType);
-    PyModule_AddObject(module, "ChainDatumToken", (PyObject*)&DapChainDatumToken_DapChainDatumTokenObjectType);
-    PyModule_AddObject(module, "ChainDatumTokenExt", (PyObject*)&DapChainTxTokenExt_DapChainTxTokenExtType);
-    PyModule_AddObject(module, "ChainDatumTokenEmisson", (PyObject*)&DapChainDatumTokenEmission_DapChainDatumTokenEmissionObjectType);
-    PyModule_AddObject(module, "ChainTxItemType", (PyObject*)&DapChainTxItemObject_DapChainTxItemTypeObjectType);
-    PyModule_AddObject(module, "ChainTxCondType", (PyObject*)&DapChainTxCondType_DapChainTxCondTypeObject);
-    PyModule_AddObject(module, "ChainDatumTx", (PyObject*)&DapChainDatumTx_DapChainDatumTxObjectType);
-    PyModule_AddObject(module, "ChainTxOutCond", (PyObject*)&DapChainTxOutCond_DapChainTxOutCondType);
-    PyModule_AddObject(module, "ChainTxOutCondSubtypeSrvPay", (PyObject*)&DapChainTxOutCondSubTypeSrvPay_DapChainTxOutCondSubTypeSrvPayObject);
-    PyModule_AddObject(module, "ChainTxOutCondSubtypeSrvStake", (PyObject*)&DapChainTxOutCondSubTypeSrvStake_DapChainTxOutCondSubTypeSrvStakeObject);
-    PyModule_AddObject(module, "ChainTxOutCondSubtypeSrvXchange", (PyObject*)&DapChainTxOutCondSubTypeSrvXchange_DapChainTxOutCondSubTypeSrvXchangeObject);
-    PyModule_AddObject(module, "ChainLedger", (PyObject*)&DapChainLedger_DapChainLedgerType);
-    PyModule_AddObject(module, "ChainTxIn", (PyObject*)&DapChainTxInObject_DapChainTxInTypeObjectType);
-    PyModule_AddObject(module, "ChainTxInCond", (PyObject*)&DapChainTxInCondObject_DapChainTxInCondTypeObjectType);
-    PyModule_AddObject(module, "ChainTxOut", (PyObject*)&DapChainTxOutObject_DapChainTxOutTypeObjectType);
-    PyModule_AddObject(module, "ChainTxPkey", (PyObject*)&DapChainTxPkeyObject_DapChainTxPkeyTypeObjectType);
-    PyModule_AddObject(module, "ChainTxReceipt", (PyObject*)&DapChainTxReceiptObject_DapChainTxReceiptTypeObjectType);
-    PyModule_AddObject(module, "ChainTxOutExt", (PyObject*)&DapChainTxOutExtObject_DapChainTxOutExtTypeObjectType);
-    // =============
+    PyObject *netModule = PyModule_Create(&CellframeNetworkPythonModule);
+    // === Chain node ===
+    PyModule_AddObject(netModule, "Node", (PyObject*)&DapChainNodeObjectType);
+    PyModule_AddObject(netModule, "NodeInfo", (PyObject*)&DapChainNodeInfoObjectType);
+    PyModule_AddObject(netModule, "NodeClient", (PyObject*)&DapChainNodeClientObjectType);
+    PyModule_AddObject(netModule, "NodeAddr", (PyObject*)&DapChainNodeAddrObjectType);
     // === Chain net ===
-    PyModule_AddObject(module, "ChainNet", (PyObject*)&DapChainNetObject_DapChainNetObjectType);
-    PyModule_AddObject(module, "ChainNodeClient", (PyObject*)&DapChainNodeClientObject_DapChainNodeClientObjectType);
-    PyModule_AddObject(module, "ChainNodeInfo", (PyObject*)&DapChainNodeInfoObject_DapChainNodeInfoObjectType);
-    PyModule_AddObject(module, "ChainNetNode", (PyObject*)&DapChainNetNodeObject_DapChainNetNodeObjectType);
-    PyModule_AddObject(module, "ChainNetState", (PyObject*)&DapChainNetStateObject_DapChainNetStateObjectType);
-    // =============
+    PyModule_AddObject(netModule, "Net", (PyObject*)&DapChainNetObjectType);
+    PyModule_AddObject(netModule, "NetID", (PyObject*)&DapChainNetIdObjectType);
+    PyModule_AddObject(netModule, "NetState", (PyObject*)&DapChainNetStateObjectType);
     // === Chain net srv ===
-    PyModule_AddObject(module, "ChainNetSrv", (PyObject*)&DapChainNetSrvObject_DapChainNetSrvObjectType);
-    PyModule_AddObject(module, "ChainNetSrvClient", (PyObject*)&DapChainNetSrvClientObject_DapChainNetSrvClientObjectType);
-    PyModule_AddObject(module, "ChainNetSrvClientRemote", (PyObject*)&DapChainNetSrvClientRemoteObject_DapChainNetSrvClientRemoteObjectType);
-    PyModule_AddObject(module, "ChainNetSrvUID", (PyObject*)&DapChainNetSrvUIDObject_DapChainNetSrvUIDObjectType);
-    PyModule_AddObject(module, "ChainNetSrvOrder", (PyObject*)&DapChainNetSrvOrderObject_DapChainNetSrvOrderObjectType);
-    PyModule_AddObject(module, "ChainNetSrvOrderDirection", (PyObject*)&DapChainNetSrvOrderDirectionObject_DapChainNetSrvOrderDirectionObjectType);
-    PyModule_AddObject(module, "ChainNetSrvPriceUnitUID", (PyObject*)&DapChainNetSrvPriceUnitUIDObject_DapChainNetSrvPriceUnitUIDObjectType);
-    // =============
-    // === Chain type dag ===
-    PyModule_AddObject(module, "ChainCsDag", (PyObject*)&DapChainCsDag_DapChainCsDagType);
-    PyModule_AddObject(module, "ChainCsDagEvent", (PyObject*)&DapChainCsDagEvent_DapChainCsDagEventType);
-    // ============
+    PyModule_AddObject(netModule, "Service", (PyObject*)&DapChainNetSrvObjectType);
+    PyModule_AddObject(netModule, "ServiceClient", (PyObject*)&DapChainNetSrvClientObjectType);
+    PyModule_AddObject(netModule, "ServicePrice", (PyObject*)&DapChainNetSrvPriceObjectType);
+    PyModule_AddObject(netModule, "ServiceOrder", (PyObject*)&DapChainNetSrvOrderObjectType);
+    PyModule_AddObject(netModule, "ServiceOrderDirection", (PyObject*)&DapChainNetSrvOrderDirectionObjectType);
+    PyModule_AddObject(netModule, "ServiceUID", (PyObject*)&DapChainNetSrvUidObjectType);
+    PyModule_AddObject(netModule, "ServicePriceUnitUID", (PyObject*)&DapChainNetSrvPriceUnitUidObjectType);
+    PyObject *csModule = PyModule_Create(&CellframeConsensusPythonModule);
+    // === Chain cs dag poa
+    PyModule_AddObject(csModule, "DagPoa", (PyObject*)&DapChainCsDagPoaObjectType);
+    PyModule_AddObject(csModule, "Block", (PyObject*)&DapChainCsBlockType);
+    PyModule_AddObject(csModule, "ChainCSDag", (PyObject*)&DapChainCsDagType);
+    PyModule_AddObject(csModule, "DAG", (PyObject*)&DapChainCsDagEventType);
+    PyModule_AddObject(csModule, "GDB", (PyObject*)&DapChainGdbObjectType);
 
-    PyModule_AddObject(module, "ChainGDB", (PyObject*)&DapChainGDBObject_DapChainGDBType);
-    PyModule_AddObject(module, "ChainGlobalDB", (PyObject*)&DapChainGlobalDBObject_DapChainDlobalDBType);
-    PyModule_AddObject(module, "ChainWallet", (PyObject*)&DapChainWallet_dapChainWalletType);
-
-    PyModule_AddObject(module, "Http", (PyObject*)&DapHTTP_DapHTTPType);
-    PyModule_AddObject(module, "HttpSimple", (PyObject*)&DapHTTPSimple_DapHTTPSimpleType);
-    PyModule_AddObject(module, "HttpCode", (PyObject*)&HTTPCode_HTTPCodeType);
-    PyModule_AddObject(module, "EncHttp", (PyObject*)&DapEncServer_DapEncServerType);
-    PyModule_AddObject(module, "Stream", (PyObject*)&DapStream_DapStreamType);
-    PyModule_AddObject(module, "StreamCtl", (PyObject*)&DapStreamCtl_DapStreamCtlType);
-    PyModule_AddObject(module, "Mempool", (PyObject*)&DapMempool_DapMempoolType);
-
-    // ==============
-    PyModule_AddObject(module, "AppCli", (PyObject*)&DapAppCli_dapAppCliType);
-    PyModule_AddObject(module, "AppCliServer", (PyObject*)&DapChainNodeCliObject_DapChainNodeCliObjectType);
-    #ifdef DAP_SUPPORT_PYTHON_PLUGINS
-        PyModule_AddObject(module, "AppContext", (PyObject*)&dapAppContext_dapAppContextType);
-    #endif
-    PyModule_AddObject(module, "JSONRPCRequest", (PyObject*)&DapJSONRPCRequest_DapJSONRPCRequestType);
-    PyModule_AddObject(module, "JSONRPCResponse", (PyObject*)&DapJSONRPCResponse_DapJSONRPCResponseType);
-
-    return module;
+    PyObject *cellframeModule = PyModule_Create(&CellFramePythonModule);
+    PyModule_AddStringConstant(cellframeModule, "__author__", "Alexey Stratulat <alexey.stratulat@demlabs.net>");
+    PyModule_AddStringConstant(cellframeModule, "__version__", DAP_VERSION);
+    CellFrame_error = PyErr_NewException("CellFrame.error", NULL, NULL);
+    PyModule_AddObject(cellframeModule, "error", CellFrame_error);
+    PyModule_AddObject(cellframeModule, "AppCli", (PyObject*)&DapAppCliObjectType);
+    PyModule_AddObject(cellframeModule, "AppCliServer", (PyObject*)&DapChainNodeCliObjectType);
+    PyObject *moduleDict = PyImport_GetModuleDict();
+    Py_INCREF(chainModule);
+    PyModule_AddObject(cellframeModule, "Chain", chainModule);
+    PyDict_SetItemString(moduleDict, "CellFrame.Chain", chainModule);
+    Py_INCREF(commonModule);
+    PyModule_AddObject(cellframeModule, "Common", commonModule);
+    PyDict_SetItemString(moduleDict, "CellFrame.Common", commonModule);
+    Py_INCREF(netModule);
+    PyModule_AddObject(cellframeModule, "Network", netModule);
+    PyDict_SetItemString(moduleDict, "CellFrame.Network", netModule);
+    Py_INCREF(csModule);
+    PyModule_AddObject(cellframeModule, "Consensus", csModule);
+    PyDict_SetItemString(moduleDict, "CellFrame.Consensus", csModule);
+    return cellframeModule;
 }
 
 void deinit_modules(void){
@@ -628,7 +775,7 @@ void deinit_modules(void){
     dap_common_deinit();
 }
 
-PyObject *python_cellframe_deinit(PyObject *self, PyObject *args){
+PyObject *python_dap_deinit(PyObject *self, PyObject *args){
     deinit_modules();
     return PyLong_FromLong(0);
 }
